@@ -1,0 +1,101 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,initial-scale=1.0,width=device-width"
+    />
+    <title>APP</title>
+    <link rel="stylesheet" type="text/css" href="../css/style.css" />
+    <style>
+        body { padding: 6px;  height: auto; background-color: transparent;  }
+        .get-location{ width: 40px; height: 40px; border-radius: 4px; box-shadow: 0 0 4px 0 #aaa; background: white url(../image/ft_loc_normal.png) no-repeat center; background-size: 90% auto; }
+        .get-location.follow{ background-image: url(../image/main_icon_follow.png); }
+        .get-location.compass{  background-image: url(../image/main_icon_compass.png); }
+        
+        .set-zoom{ box-shadow:0 0 4px 0 #aaa; float: left; border-radius: 4px; }
+        .set-zoom .level{ background: white url() no-repeat center; width: 30px; height: 40px; background-size: auto 40%; }
+        .set-zoom .level.disable{ background-color: #aaa; }
+        .set-zoom .level:hover{ opacity: .8; }
+        .set-zoom .zoom-in{ background-image: url(../image/ic_track_explore_zoomin.png); }
+        .set-zoom .zoom-in.border-b:after{ background-color: #bbb; left: 3px; right: 3px; }
+        .set-zoom .zoom-out{ background-image: url(../image/ic_track_explore_zoomout.png); }
+    </style>
+</head>
+<body>
+    <div class="get-location none" tapmode onclick="funUserLocation( this );"></div>
+    <div class="set-zoom none">
+        <div class="zoom-in level border-b" onclick="funSetZoomLevel( this )" tapmode="hover" ></div>
+        <div class="zoom-out level" onclick="funSetZoomLevel( this )" tapmode="hover" ></div>
+    </div>
+</body>
+<script type="text/javascript" src="../script/api.js"></script>
+<script type="text/javascript" >
+    
+    var map;
+    apiready = function(){
+		map = api.require('bMap');
+        $api.removeCls( $api.dom('.'+api.frameName ), 'none' )
+    }   
+    
+    function funUserLocation( tag ){
+        if( ! $api.hasCls( tag, 'follow' ) ){
+            api.execScript({
+                name: 'root',
+                script: 'funUserLocation(\'follow\')'
+            });
+            $api.addCls( tag, 'follow' );
+        }else if( ! $api.hasCls( tag, 'compass' ) ){
+            api.execScript({
+                name: 'root',
+                script: 'funUserLocation(\'compass\')'
+            });
+            $api.addCls( tag, 'compass' );
+        }else{
+            tag.className = 'get-location' ;
+            api.execScript({
+                name: 'root',
+                script: 'funUserLocation(\'none\')'
+            });
+        }
+    }
+    
+    var vLevel = 17;
+    function funSetZoomLevel( tag ){
+        var eLevel = $api.domAll('.level');
+        for( var x in eLevel ){
+            if( eLevel[x].nodeType ){
+                $api.removeCls( eLevel[x], 'disable' );
+            }
+        }
+        if( $api.hasCls( tag, 'zoom-in' ) ){
+            if( vLevel < 19 ){
+                ++vLevel;
+                api.execScript({
+                    name: 'root',
+                    script: 'funSetZoomLevel('+vLevel+')'
+                });
+                if( vLevel >= 19 ){
+                    $api.addCls( tag, 'disable' );
+                }
+            }else{
+                $api.addCls( tag, 'disable' );
+            }
+        }else{
+            if( vLevel > 3 ){
+                --vLevel;
+                api.execScript({
+                    name: 'root',
+                    script: 'funSetZoomLevel('+vLevel+')'
+                });
+                if( vLevel <= 3 ){
+                    $api.addCls( tag, 'disable' );
+                }
+            }else{
+                $api.addCls( tag, 'disable' );
+            }
+        }
+    }
+</script>
+
+</html>

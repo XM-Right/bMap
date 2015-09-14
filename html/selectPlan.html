@@ -1,0 +1,102 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,initial-scale=1.0,width=device-width"
+    />
+    <title>APP</title>
+    <link rel="stylesheet" type="text/css" href="../css/style.css" />
+    <style>
+        body{  -webkit-transition: all .3s; transition: all .3s; }
+        body.active{ background-color: rgba(0,0,0,.3); }
+        .list{ overflow: auto; position: relative; z-index: 2;  }
+        .list ul{  -webkit-transform: translate3d(0,-100%,0) rotate3d(0,1,0,-90deg); transform:translate3d(0,-100%,0) rotate3d(0,1,0,-90deg); -webkit-transition: all .3s; transition: all .3s;  }
+        .list ul.active{  -webkit-transform: translate3d(0,0,0) rotate3d(0,0,0,0); transform: translate3d(0,0,0) rotate3d(0,0,0,0);   }
+        .list ul li{ line-height: 22px; padding: 10px; background: white url() no-repeat 95% center; background-size: auto 50%; }
+        .list ul li.active{ background-image: url('../image/layer_checkbox_on.png'); }
+        .close{ position: fixed; left: 0; top: 0; right: 0; bottom: 0; }
+    </style>
+</head>
+<body>
+    <div class="close" onclick="funClose();" tapmode ></div>
+    <div class="list flex-con">
+        <ul>
+            <li class="border-b transit none" onclick="funPlan( this );" tapmode="hover" data-policy="ebus_time_first" >时间优先</li>   
+            <li class="border-b drive none" onclick="funPlan( this );" tapmode="hover" data-policy="ecar_time_first" >时间优先</li>   
+            <li class="border-b drive none" onclick="funPlan( this );" tapmode="hover" data-policy="ecar_fee_first"  >较少费用</li>   
+            <li class="border-b drive none" onclick="funPlan( this );" tapmode="hover" data-policy="ecar_dis_first"  >最短距离</li>    
+            <li class="border-b drive none" onclick="funPlan( this );" tapmode="hover" data-policy="ecar_avoid_jamt"  >躲避拥堵</li>   
+            <li class="border-b transit none" onclick="funPlan( this );" tapmode="hover" data-policy="ebus_no_subway"  >不含地铁</li>   
+            <li class="border-b transit none" onclick="funPlan( this );" tapmode="hover" data-policy="ebus_transfer_first"  >最少换乘</li>   
+            <li class="border-b transit none" onclick="funPlan( this );" tapmode="hover" data-policy="ebus_walk_first"  >最少步行距离</li>   
+        </ul>
+    </div>
+</body>
+<script type="text/javascript" src="../script/api.js"></script>
+<script type="text/javascript" >
+    
+    var bMap,
+        eTag;
+    apiready = function(){
+		bMap = api.require('bMap');
+        $api.addCls( $api.dom('ul'), 'active' )
+        $api.addCls( $api.dom('body'), 'active' )
+        $api.addCls( $api.dom('li[data-policy='+api.pageParam.policy+']'), 'active' )
+        var ePlans = $api.domAll('li.'+api.pageParam.type );
+        for( var x in ePlans ){
+            if( ePlans[x].nodeType ){
+                $api.removeCls( ePlans[x], 'none' )
+            }
+        }
+    }
+    function funPlan( tag ){
+        var index = $api.thisActive( tag );
+        var frames = JSON.parse( api.pageParam.frames );
+        api.execScript({
+            name: 'routePlanHeader',
+            script: 'funIniRoute(\''+tag.getAttribute('data-policy')+'\')'
+        });
+    }
+    
+    function funExecScript( obj ){  //废弃
+            if( obj.num < obj.frames.length ){
+                var data = {
+                    policy : $api.dom('ul li:nth-child('+obj.eIndex+')').getAttribute('data-policy'),
+                    policyName : $api.dom('ul li:nth-child('+obj.eIndex+')').innerHTML,
+                    num : obj.num, 
+                    frames : obj.frames,
+                    eIndex : obj.eIndex
+                }
+                api.execScript({
+                    name: 'routePlanHeader',
+                    script: 'funLayout('+JSON.stringify( data )+')'
+                });
+            }else{
+                api.execScript({
+                    name: 'routePlanHeader',
+                    script: 'funSelect(\''+$api.dom('ul li:nth-child('+obj.eIndex+')').getAttribute('data-policy')+'\')'
+                });
+            }
+    }
+    
+    function funClose(){
+        api.execScript({
+            name: 'routePlanHeader',
+            script: 'funSelect()'
+        });
+    }
+    
+    function funCloseFrame(){
+        $api.removeCls( $api.dom('ul'), 'active' )
+        $api.removeCls( $api.dom('body'), 'active' )
+        setTimeout(function(){
+            api.closeFrame({
+                name: 'selectPlan'
+            });
+        },300);
+    }
+    
+</script>
+
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,initial-scale=1.0,width=device-width"
+    />
+    <title>APP</title>
+    <link rel="stylesheet" type="text/css" href="../css/style.css" />
+    <style>
+        body{ background-color: white; }
+        .flex-wrap{  background-color: white;  line-height: 42px; }
+        .icon{ width: 52px; height: 42px; background: url() no-repeat center;  }
+        .ic-back{ background-image: url(../image/nearby_icon_back.png); background-size: 40% auto;}
+        .event{ padding: 0 10px;  }
+        .event span{ display: inline-block; background-color: #3385ff; line-height: 32px; color:white; border-radius:4px; padding: 0 10px; }
+        .UIInput{ background: url(../image/common_icon_searchbox_magnifier.png) no-repeat 10px center; background-size: auto 60%; border:1px solid #eee; height: 30px; margin-top: 5px;  border-radius: 4px; }
+        
+        .list{ overflow: auto; }
+        .list ul li{ line-height: 22px; padding: 10px; }
+        .list ul li span{ color: #3385ff; font-size: .8rem; padding-left: 10px;  }
+        .list ul li p{ color: #bbb; font-size: .8rem; }
+    </style>
+</head>
+<body class="flex-wrap flex-vertical">
+    <div class="flex-wrap border-b">
+        <div class="ic-back icon" onclick="api.closeWin();" tapmode="hover" ></div>
+        <div class="flex-con UIInput"></div>
+        <div class="event" onclick="funsearch()"  tapmode="hover"  >
+            <span>搜索周围</span>
+        </div>
+    </div>
+    <div class="list flex-con">
+        <ul>
+             <!-- 
+               <li class="border-b" >
+                    <i class="none"></i>
+                    <h6>菜馆 <span>普通点</span></h6>
+                    <p>北京</p>
+                </li>  
+              -->
+        </ul>
+    </div>
+</body>
+<script type="text/javascript" src="../script/api.js"></script>
+<script type="text/javascript" >
+    
+    var bMap,
+        UIInput;
+    apiready = function(){
+		bMap = api.require('bMap');
+        UIInput = api.require('UIInput');
+            UIInput.open({
+                rect: {
+                    x: $api.dom('.ic-back').offsetWidth + 30,
+                    y: $api.dom('.flex-con').offsetTop + 2,
+                    w: $api.dom('.flex-con').offsetWidth - 40,
+                    h: $api.dom('.flex-con').offsetHeight - 4
+                },
+                styles: {
+                    bgColor: 'rgba(0,0,0,0)',
+                    size: 12,
+                    color: '#000',
+                    placeholder: {
+                        color: '#eee'
+                    }
+                },
+                //  maxRows: 4,
+                placeholder: '搜索',
+                keyboardType: 'search',
+                fixedOn: ''
+            }, function(ret){
+                if( ret.eventType == 'change' ){
+                    UIInput.value(function(ret){
+                        if( $api.trimAll( ret.msg ).length  ){
+                                bMap.searchInCity({
+                                    city: '北京',
+                                    keyword: $api.trimAll( ret.msg ),
+                                    pageCapacity : 50
+                                },function(ret){
+                                    $api.dom('ul').innerHTML = '';
+                                    if(ret.status){
+                                            var data = ret.results;
+                                            for( var x in data ){
+                                                var poiType = data[x].poiType;
+                                                if( poiType == 0 ){
+                                                    poiType = '普通点';
+                                                }else if( poiType == 1 ){
+                                                    poiType = '公交站';
+                                                }else if( poiType == 2 ){
+                                                    poiType = '公交线路';
+                                                }else if( poiType == 3 ){
+                                                    poiType = '地铁站';
+                                                }else if( poiType == 4 ){
+                                                    poiType = '公交站';
+                                                }
+                                            var ht = '<li class="border-b" onclick="funsearch( this );" tapmode="hover" >'+
+                                            '    <i class="none">'+JSON.stringify( data[x] )+'</i>'+
+                                            '    <h6 class="row-nowrap" >'+data[x].name+'<span>'+poiType+'</span></h6>'+
+                                            '    <p class="row-nowrap" >'+data[x].address+'</p>'+
+                                            '</li>';
+                                            $api.append( $api.dom('ul'), ht);
+                                            }
+                                            api.parseTapmode();
+                                    } else {
+                                        $api.append( $api.dom('ul'), '<li class="border-b">'+JSON.stringify(err)+'</li>');
+                                    }
+                                });
+                        }else{
+                            $api.append( $api.dom('ul'), '<li class="border-b">'+JSON.stringify(ret)+'</li>');
+                            $api.append( $api.dom('ul'), '<li class="border-b">'+ret.status && $api.trimAll( ret.msg ).length+'</li>');
+                        }
+                    });
+                }else if( ret.eventType == 'show' && api.pageParam.value ){
+                    UIInput.value({
+                        msg: api.pageParam.value
+                    });
+                }
+            });
+    }   
+    
+    function funsearch( tag ){
+        if( tag ){
+            api.execScript({
+                name: 'root',
+                script: 'funAddAnnotations(\''+tag.querySelector( 'i' ).innerHTML+'\')'
+            });
+        }else{
+            UIInput.value(function(ret){
+                if( $api.trimAll( ret.msg ).length  ){
+                    var name = $api.trimAll( ret.msg );
+                    bMap.getLocation({
+                        accuracy: '10m',
+                        autoStop: true,
+                        filter: 1
+                    }, function(ret, err){
+                        if(ret.status){
+                            name = { lon : ret.lon, lat : ret.lat, name : name };
+                            api.execScript({
+                                name: 'root',
+                                script: 'funAddAnnotations(\''+ JSON.stringify( name )+'\')'
+                            });
+                        }else{
+                            alert(err.code);
+                        }
+                    });
+                }
+            })
+        }
+    }
+    
+</script>
+
+</html>

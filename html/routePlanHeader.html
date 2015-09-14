@@ -1,0 +1,172 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,initial-scale=1.0,width=device-width"
+    />
+    <title>APP</title>
+    <link rel="stylesheet" type="text/css" href="../css/style.css" />
+    <script type="text/javascript" src="../script/api.js"></script>
+    <style>
+        body{ background-color: white; height: auto;  }
+        .wrap{  background-color: white;  line-height: 42px; }
+        .icon{ width: 52px; height: 42px; background: url() no-repeat center;  }
+        .ic-back{ background-image: url(../image/nearby_icon_back.png); background-size: 40% auto;}
+        .event{ padding: 0 20px;  }
+        .event span{ display: inline-block; background-color: #3385ff; line-height: 32px; color:white; border-radius:4px; padding: 0 10px; }
+        .UIInput{  height: 30px; margin-top: 5px;  border-radius: 4px; }
+        .UIInput .flex-con{ height: 100%; background: red; margin: 0 5px; background: url() no-repeat center; background-size: auto 80%; }
+        .UIInput .flex-con:nth-child( 1 ){ background-image: url(../image/common_topbar_route_bus_normal.png) }
+        .UIInput .flex-con:nth-child( 2 ){ background-image: url(../image/common_topbar_route_car_normal.png) }
+        .UIInput .flex-con:nth-child( 3 ){ background-image: url(../image/common_topbar_route_foot_normal.png) }
+        .UIInput .flex-con:nth-child( 1 ).active{ background-image: url(../image/common_topbar_route_bus_pressed.png) }
+        .UIInput .flex-con:nth-child( 2 ).active{ background-image: url(../image/common_topbar_route_car_pressed.png) }
+        .UIInput .flex-con:nth-child( 3 ).active{ background-image: url(../image/common_topbar_route_foot_pressed.png) }
+        
+        .select-btn{ line-height: 42px; padding: 0 10px; background: url('../image/icon_poilist_disable_arrow.png') no-repeat 98% center; background-size: auto 20%; color: #888; transition: all .3s;  }
+        .select-btn.active{ background-image: url('../image/icon_poilist_down_arrow_select_up.png'); }
+    </style>
+</head>
+<body class="flex-wrap flex-vertical">
+    <div class="flex-wrap border-b wrap">
+        <div class="ic-back icon" onclick="api.closeWin();" tapmode="hover" ></div>
+        <div class="flex-con UIInput flex-wrap ">
+            <div class="flex-con route-type active" data-name="transit" onclick="funPlan( this )" data-index="0" tapmode ></div>
+            <div class="flex-con route-type" data-name="drive" onclick="funPlan( this );" data-index="1" tapmode  ></div>
+            <div class="flex-con route-type" data-name="walk" onclick="funPlan( this );" data-index="2" tapmode  ></div>
+        </div>
+    </div>
+    <div class="flex-wrap border-b select-btn" onclick="funSelect(  );" tapmode >推荐路线</div>
+</body>
+<script type="text/javascript" src="../script/api.js"></script>
+<script type="text/javascript" >
+    var bMap,
+        frames = [];
+    apiready = function(){
+		bMap = api.require('bMap');
+        funIniRoute();
+    }
+    
+    function funIniRoute( policy ){
+        var groupIndex = 0;
+        if( policy ){
+            api.execScript({
+                name: 'routePlanHeader',
+                frameName: 'selectPlan',
+                script: 'funCloseFrame()'
+            });
+            funSelect();
+            groupIndex = $api.dom('.route-type.active').getAttribute('data-index');
+        }
+        var eframes = $api.domAll('.UIInput .flex-con');
+        frames = [];
+        for( var x in eframes ){
+            if( eframes[x].nodeType ){
+                frames.push( eframes[x].getAttribute('data-name') )
+            }
+        }
+        var data = { 
+                endData : JSON.parse( api.pageParam.data ), 
+                policy : policy ? policy : null , 
+                type :  frames,
+                groupIndex :  groupIndex
+           }
+        api.execScript({
+            name: 'root',
+            script: ' funGetLocation( '+JSON.stringify( data )+' )'
+        });
+        $api.showProgress();
+    }
+    
+    function funOpenFrames( data ){
+            $api.hideProgress();
+            var frames = [];
+            for( var x in data ){
+                sPolicy = data[x].policy;
+                frames.push( {
+                    name: data[x].name, 
+                    url: './routePlanList.html',
+                    pageParam: {
+                        data : JSON.stringify( data[x].data ),
+                        lineId : JSON.stringify( data[x].lineId ),
+                        sPolicy : sPolicy
+                    }
+                })
+            }
+            api.closeFrameGroup({
+                name: 'routePlan'
+            });
+            api.openFrameGroup ({
+                name: 'routePlan',
+                rect:{
+                    x:0,
+                    y: $api.dom('body').offsetHeight,
+                    h: api.winHeight - $api.dom('body').offsetHeight
+                },
+                preload : 2,
+                index : data[0].groupIndex,
+                scrollEnabled : false,
+                frames:frames
+            }, function(ret, err){
+                var name = ret.name;
+                var index = ret.index;
+            });
+    }
+    
+    function funPlan( tag ){
+        var index = $api.thisActive( tag );
+        api.setFrameGroupIndex({
+            name: 'routePlan',
+            index:index,
+            scroll:false
+        });
+    }
+    
+    
+    var sPolicy = 'ebus_time_first';
+    function funSelect( policy ){
+        var tag = $api.dom('.select-btn');
+        if( policy ){
+            sPolicy = policy;
+        }
+        if( $api.hasCls( tag, 'active') ){
+            $api.removeCls( tag, 'active' );
+            api.closeFrame({
+                name: 'selectPlan'
+            });
+        }else{
+            $api.addCls( tag, 'active' );
+            api.openFrame({
+                name: 'selectPlan',
+                url: './selectPlan.html',
+                rect:{
+                    x:0,
+                    y: $api.dom('body').offsetHeight,
+                    h: api.winHeight - $api.dom('body').offsetHeight
+                },
+                pageParam: {
+                    frames : JSON.stringify( frames ),
+                    policy : sPolicy,
+                    type : $api.dom('.route-type.active').getAttribute('data-name')
+                }
+            });
+        }
+        if( policy ){
+            $api.removeCls( tag, 'active' );
+        }
+    }
+    
+    function funClose(){
+        api.closeWin({
+            name: 'routePlanHeader',
+            animation: {
+                type:"none",                //动画类型（详见动画类型常量）
+                subType:"from_right",       //动画子类型（详见动画子类型常量）
+                duration:300                //动画过渡时间，默认300毫秒
+            }
+        });
+    }
+</script>
+
+</html>

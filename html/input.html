@@ -1,0 +1,107 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,initial-scale=1.0,width=device-width"
+    />
+    <title>APP</title>
+    <link rel="stylesheet" type="text/css" href="../css/style.css" />
+    <style>
+        body { padding: 10px; height: auto; background-color: transparent;  }
+        .search{  background-color: white; padding: 4px 0 ; box-shadow: 0 0 5px rgba(0,0,0,.2); border-radius: 4px;  line-height: 32px; }
+        .search .icon{ width: 52px; height: 32px; background: url() no-repeat center;  }
+        .search .ic-sear{ background-image: url(../image/common_icon_searchbox_magnifier.png); background-size: 40% auto;}
+        .search .ic-voice{ background-image: url(../image/main_icon_voice.png); background-size: 30% auto; border-left: 1px solid #eee; }
+        .search .event{ color: #999; }
+        
+        
+        .route{  background-color: white;  line-height: 42px; box-shadow: 0 0 5px rgba(0,0,0,.2); border-radius: 4px; }
+        .route .icon{ width: 52px; height: 42px; background: url() no-repeat center;  }
+        .route .ic-back{ background-image: url(../image/nearby_icon_back.png); background-size: 40% auto;}
+        .route .event{ padding: 0 20px;  }
+        .route .event span{ display: inline-block; background-color: #3385ff; line-height: 32px; color:white; border-radius:4px; padding: 0 10px; }
+        .route .UIInput{  height: 40px; margin-top: 5px;  border-radius: 4px; }
+        .route .UIInput .flex-con{ height: 100%; background: red; margin: 0 5px; background: url() no-repeat center; background-size: auto 70%; }
+        .route .UIInput .flex-con:nth-child( 1 ){ background-image: url(../image/common_topbar_route_bus_normal.png) }
+        .route .UIInput .flex-con:nth-child( 2 ){ background-image: url(../image/common_topbar_route_car_normal.png) }
+        .route .UIInput .flex-con:nth-child( 3 ){ background-image: url(../image/common_topbar_route_foot_normal.png) }
+        .route .UIInput .flex-con:nth-child( 1 ).active{ background-image: url(../image/common_topbar_route_bus_pressed.png) }
+        .route .UIInput .flex-con:nth-child( 2 ).active{ background-image: url(../image/common_topbar_route_car_pressed.png) }
+        .route .UIInput .flex-con:nth-child( 3 ).active{ background-image: url(../image/common_topbar_route_foot_pressed.png) }
+    </style>
+</head>
+<body>
+    <div class="flex-wrap search">
+        <div class="ic-sear icon"></div>
+        <div class="event flex-con" onclick="funsearch();" tapmode >搜地点、查公交、找路线</div>
+        <div class="ic-voice icon"></div>
+    </div>
+    <div class="flex-wrap route none">
+        <div class="flex-con UIInput flex-wrap ">
+            <div class="flex-con route-type active" data-name="transit" onclick="funPlan( this )" data-index="0" tapmode ></div>
+            <div class="flex-con route-type" data-name="drive" onclick="funPlan( this );" data-index="1" tapmode  ></div>
+            <div class="flex-con route-type" data-name="walk" onclick="funPlan( this );" data-index="2" tapmode  ></div>
+        </div>
+    </div>
+</body>
+<script type="text/javascript" src="../script/api.js"></script>
+<script type="text/javascript" >
+    
+    var map;
+    apiready = function(){
+		map = api.require('bMap');
+    }   
+    function funsearch(){
+        api.openWin({
+            name: 'searList',
+            url: './searList.html',
+            animation : {
+                type:"none",                //动画类型（详见动画类型常量）
+                subType:"from_right",       //动画子类型（详见动画子类型常量）
+                duration:300                //动画过渡时间，默认300毫秒
+            },
+            pageParam: {
+                value : $api.dom('.event').innerHTML != '搜地点、查公交、找路线' ? $api.dom('.event').innerHTML : null
+            }
+        });
+    }
+    
+    function funAddSearchTxt( txt ){
+        $api.dom('.event').innerHTML = txt;
+    }
+    
+    function funPlan( tag, isClick ){
+        var index = $api.thisActive( tag );
+        if( ! isClick ){
+            api.execScript({
+                name: 'root',
+                script: 'funDraw('+index+')'
+            });
+        }
+    }
+    
+    function funShowRoute( data ){
+       if( data.line.type == 'transit' ){
+           var routeIndex = 0;
+       }else if( data.line.type == 'drive' ){
+           var routeIndex = 1;
+       }else if( data.line.type == 'walk' ){
+           var routeIndex = 2;
+       }
+       $api.addCls( $api.dom('.search'), 'none' );
+       $api.removeCls( $api.dom('.route'), 'none' );
+       funPlan( $api.dom('.route-type:nth-child('+( routeIndex + 1 )+')'), true );
+    }
+    
+    function funBackMapInt( ){
+        api.closeFrame({
+            name: 'routeList'
+        });
+        api.closeFrame({
+            name: 'input'
+        });
+    }
+</script>
+
+</html>

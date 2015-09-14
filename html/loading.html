@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,initial-scale=1.0,width=device-width"
+    />
+    <title>APP</title>
+    <link rel="stylesheet" type="text/css" href="../css/style.css" />
+    <style>
+        body{  -webkit-transition: all .3s; transition: all .3s; background-color: transparent;}
+        body.active{  }
+        .close{ position: fixed; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,.3); }
+        .loading{ position: fixed; left: 50%; top: 50%; width: 100px;  border-radius: 4px; padding: 20px; text-align: center; background: white url(../image/common_loading_drop.png) no-repeat  center 22px; background-size: 70px auto; padding-top: 104px; color: #aaa; margin-left: -70px; margin-top: -70px; }
+        .loading .icon-loading{ position: absolute; left: 50%; margin-left: -35px;  width: 70px; top:20px; height:70px; background:url(../image/common_loading_circle.png) no-repeat center; background-size: 100% 100%;  -webkit-animation: fa-spin 2s infinite linear;  animation: fa-spin 2s infinite linear;  }
+    </style>
+</head>
+<body>
+    <div class="close" onclick="funClose();" tapmode ></div>
+    <div class="loading">
+        <div class="icon-loading"></div>
+        加载中…
+    </div>
+</body>
+<script type="text/javascript" src="../script/api.js"></script>
+<script type="text/javascript" >
+    
+    var bMap,
+        eTag;
+    apiready = function(){
+		bMap = api.require('bMap');
+        $api.addCls( $api.dom('ul'), 'active' )
+        $api.addCls( $api.dom('body'), 'active' )
+        $api.addCls( $api.dom('li[data-policy='+api.pageParam.policy+']'), 'active' )
+    }
+    function funClose(){
+        api.execScript({
+            name: 'routePlanHeader',
+            script: 'funSelect()'
+        });
+    }
+    
+    
+</script>
+
+</html>

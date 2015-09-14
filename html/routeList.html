@@ -1,0 +1,159 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,initial-scale=1.0,width=device-width"
+    />
+    <title>APP</title>
+    <link rel="stylesheet" type="text/css" href="../css/style.css" />
+    <style>
+        body { height: auto; background-color: transparent; overflow: hidden; }
+		.swipe {  width: 300px;  height: 300px; position: relative; margin: 0 auto; }
+		.swipe-wrap { white-space: nowrap; position: absolute; height: 300px; overflow: hidden; width: 4000px; }
+		.swipe-wrap .slide { float: left;  width:300px;  }
+		.swipe .con{ margin:4px 6px;  font-size:1.2rem;  	background-color: white; box-shadow: 0 0 5px rgba(0,0,0,.2); border-radius: 4px;}
+        .btn{ line-height: 32px; text-align: center; }
+        .con .top{ padding: 6px; line-height: 22px; }
+        .con .top p{ color: #bbb; font-size: .8rem; }
+        .con .top h6 span{  color: #3385ff; font-size: .8rem; padding-left: 10px; }
+        .icon-route{ background: url(../image/icon_mylocal_go.png) no-repeat 30% center; background-size: auto 80%; }
+    </style>
+</head>
+<body>
+    <div class='swipe' id="wrapper" >
+        <div class='swipe-wrap'>
+            <!--
+               
+                <div class="slide" >
+                    <div class="con">
+                        <div class="top">
+                            <i class="none"></i>
+                            <h6>菜馆 <span>普通点</span></h6>
+                            <p>北京1</p>
+                        </div>
+                        <div class="btn flex-wrap border-t">
+                            <div class="flex-con">到这去</div>
+                        </div>
+                    </div>
+                </div> 
+             -->
+        </div>
+    </div>
+</body>
+<script type="text/javascript" src="../script/api.js"></script>
+<script type="text/javascript" src="../script/iscroll.js"></script>
+<script type="text/javascript" >
+    var myScroll,
+        isScroll = true;
+    function loaded () {
+        var w = document.body.clientWidth - 40,
+            isInitialization = true;
+        $api.dom('#wrapper').style.width = w + 'px';
+        var eSlide = $api.domAll('.slide');
+        $api.dom('.swipe-wrap').style.width = ( w ) * eSlide.length + 'px';
+        for( var x in eSlide ){
+            if( eSlide[x].nodeType ){
+                eSlide[x].style.width = w + 'px';
+            }
+        }
+        myScroll = new IScroll('#wrapper', {
+            scrollX: true,
+            scrollY: false,
+            snap: true
+        });
+	   myScroll.on('scrollEnd', function() {
+           if( isScroll ){
+                api.execScript({
+                    name: 'root',
+                    script: 'funclickAnnotations( { isScroll : true, data : '+JSON.stringify( data )+', ret : { id : '+ ( Math.abs( this.x ) / w  )+' } } )'
+                });
+           }else{
+               isScroll = true;
+           }
+        });
+        if( isInitialization ){
+            setTimeout(function(){
+                    myScroll.scrollToElement(  $api.dom('.slide:nth-child(1) ' ),0 );
+                    isInitialization = false;
+            },300);
+        }
+    }
+    var map,
+        data;
+    apiready = function(){
+		map = api.require('bMap');
+        data = JSON.parse( api.pageParam.data ).results;
+        for( var x in data ){
+            var poiType = data[x].poiType;
+            if( poiType == 0 ){
+                poiType = '普通点';
+            }else if( poiType == 1 ){
+                poiType = '公交站';
+            }else if( poiType == 2 ){
+                poiType = '公交线路';
+            }else if( poiType == 3 ){
+                poiType = '地铁站';
+            }else if( poiType == 4 ){
+                poiType = '公交站';
+            }
+           var ht = ' <div class="slide"  >'+
+           '     <div class="con">'+
+           '         <div class="top">'+
+           '             <i class="none"></i>'+
+           '             <h6 class="row-nowrap" >'+data[x].name+'<span>'+poiType+'</span></h6>'+
+           '             <p class="row-nowrap" >'+data[x].address+'</p>'+
+           '         </div>'+
+           '         <div class="btn flex-wrap border-t">'+
+           '             <div class="flex-con" onclick="funroute( this );" tapmode="hover" >'+
+           '                <i class="none">'+JSON.stringify( data[x] )+'</i>'+
+           '            到这去</div>'+
+           '         </div>'+
+           '     </div>'+
+           ' </div>';
+            $api.append( $api.dom('.swipe-wrap'), ht);
+        }
+        loaded ();
+        api.parseTapmode();
+        api.animation ({
+            name: 'set-zoom',
+            duration: 300,
+            translation:{
+                y: -50
+            }
+        }, function() {
+            //  api.alert({msg: 'set-zoom动画结束'});
+        });
+        api.animation ({
+            name: 'get-location',
+            duration: 300,
+            translation:{
+                y: -50
+            }
+        }, function() {
+            //  api.alert({msg: '动画结束'});
+        });
+    } 
+        function funroute( tag ){
+            api.openWin({
+                name: 'routePlanHeader',
+                url: './routePlanHeader.html',
+                animation : {
+                    type:"none",                //动画类型（详见动画类型常量）
+                    subType:"from_right",       //动画子类型（详见动画子类型常量）
+                    duration:300                //动画过渡时间，默认300毫秒
+                },
+                pageParam: {
+                    data : tag.querySelector('i').innerHTML
+                }
+            });
+            
+        }
+        
+        function funToSwipe( index ){
+            myScroll.scrollToElement(  $api.dom('.slide:nth-child( '+index+ ' ) ' ),300 );
+            isScroll = false;
+        }
+</script>
+
+</html>

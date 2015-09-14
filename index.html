@@ -1,0 +1,776 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,initial-scale=1.0,width=device-width"
+    />
+    <title>APP</title>
+    <link rel="stylesheet" type="text/css" href="./css/style.css" />
+    <script type="text/javascript" src="./script/api.js"></script>
+    <style>
+        body {}
+        li {line-height: 72px; text-align: center;}
+        li.code {line-height: 20px;text-align: left; padding: 10px;}
+    </style>
+</head>
+<body>
+   <!--
+       <ul>
+        <li class="border-b flex-wrap">
+            <div tapmode="hover" onclick="funopen( this );" class="flex-con">open</div>
+            <div tapmode="hover" onclick="funsearchRoute( this );" class="flex-con">searchRoute</div>
+            <div tapmode="hover" onclick="fundrawRoute( this );" class="flex-con">drawRoute</div>
+        </li>
+    </ul> 
+    -->
+</body>
+<script type="text/javascript" src="./script/api.js"></script>
+<script type="text/javascript" >
+    var bMap,
+        removeAn = 0.       //funclickAnnotations方法使用
+        vGoRoute = {},  //存储选择路线时的所有信息  funGoRoute方法使用
+        endLoction = {},    //存储最新的终点   funDraw方法使用
+        draRouteType = 'transit',    //存储最新的路线方案   funDraw方法使用
+        routeId = -1,   //funAddLine方法使用;
+        isPageModify = true,    //判断页面是否有改变
+        eventAnnotationIndex = 0,    //单击事件气泡的索引
+        removeAnnotations = [];     //存储添加的气泡组
+    apiready = function(){
+		bMap = api.require('bMap');
+        funopen();
+        api.addEventListener({
+            name:'keyback'
+        },function(ret,err){
+            if( isPageModify ){
+                api.closeWidget();
+            }else{
+                api.closeFrame({
+                    name: 'routeList'
+                });
+                api.closeFrame({
+                    name: 'input'
+                });
+                api.closeFrame({
+                    name: 'get-location'
+                });
+                api.closeFrame({
+                    name: 'set-zoom'
+                });
+                bMap.close();
+                funopen();
+            }
+        });
+    }   
+    function getCoordsFromName(){
+        alert( 'getCoordsFromName' )
+        bMap.getCoordsFromName({
+            city: '北京',
+            address: '天安门'
+        },function(ret,err){
+            if(ret.status){
+                alert( typeof ret.lon );
+                alert( typeof ret.lat );
+            }else{
+                alert(JSON.stringify(err));
+            }
+        });
+    }
+    
+    function funIsPageModify( modify ){
+        isPageModify =  modify ? true : false;
+    }
+    
+    function funopen(){
+        bMap.open({
+            rect: {
+                // x: 0,
+                //y: $api.dom('ul').offsetHeight,
+                //w: api.winWidth,
+                //h: api.winHeight - $api.dom('ul').offsetHeight 
+            },
+            // center: {
+            //      lon: 116.4021310000,
+            //      lat: 39.9994480000,
+            // },
+            zoomLevel: 17,
+            showUserLocation: true,
+            fixedOn: '',
+            fixed: true
+        }, function(ret){ 
+            if(ret.status){
+                bMap.setScaleBar({
+                    show: true,
+                    position:{
+                        x:10,
+                        y:api.winHeight - 40
+                    }
+                });
+                api.openFrame({
+                    name: 'input',
+                    url: './html/input.html',
+                    rect:{
+                        x:0,
+                        y:0,
+                        h:60
+                    }
+                });
+                api.openFrame({
+                    name: 'get-location',
+                    url: './html/buttons.html',
+                    rect:{
+                        x:0,
+                        y: api.winHeight - 100,
+                        h:52,
+                        w:52,
+                    }
+                });
+                api.openFrame({
+                    name: 'set-zoom',
+                    url: './html/buttons.html',
+                    rect:{
+                        x: api.winWidth - 40,
+                        y: api.winHeight - 140,
+                        h:92,
+                        w:42,
+                    }
+                });
+                removeAn = 0.       //funclickAnnotations方法使用
+                vGoRoute = {},  //存储选择路线时的所有信息  funGoRoute方法使用
+                endLoction = {},    //存储最新的终点   funDraw方法使用
+                draRouteType = 'transit',    //存储最新的路线方案   funDraw方法使用
+                routeId = -1,   //funAddLine方法使用;
+                isPageModify = true,    //判断页面是否有改变
+                eventAnnotationIndex = 0,    //单击事件气泡的索引
+                removeAnnotations = [];     //存储添加的气泡组
+                bMap.addEventListener({
+                    name: 'dbclick'
+                },function(ret){
+                    if( eventAnnotationIndex > 0 ){
+                        bMap.removeAnnotations({
+                            ids: [ 2000 + eventAnnotationIndex ]
+                        });
+                    }
+                })
+                eventAnnotationIndex = 0,    //单击事件气泡的索引
+                bMap.addEventListener({
+                    name: 'click'
+                },function(ret){
+                    if( eventAnnotationIndex > 0 ){
+                        bMap.removeAnnotations({
+                            ids: [ 2000 + eventAnnotationIndex ]
+                        });
+                    }
+                    bMap.addAnnotations({
+                        annotations: [
+                            { id: 2000+ ++eventAnnotationIndex, lon: ret.lon, lat: ret.lat, icon: 'widget://image/icon_gcoding.png',draggable: true }
+                        ],
+                        //  icon: 'widget://',
+                        //  draggable: true
+                    }, function(ret){
+                        alert( JSON.stringify( ret ))
+                    });
+                    bMap.getNameFromCoords({
+                        lon: ret.lon,
+                        lat: ret.lat
+                    },function(ret,err){
+                        if( ret.status ){
+                            var vSetBubble = {
+                                    id: 2000 + eventAnnotationIndex,
+                                    bgImg: 'widget://image/bg.png',
+                                    content: {
+                                        title: ret.streetName,
+                                        subTitle: ret.address,
+                                        //  illus: 'widget://image/common_icon_back_btn_normal.png',
+                                    },
+                                    styles: {
+                                        titleColor: '#f00',
+                                        titleSize: 16,
+                                        subTitleColor: '#0f0',
+                                        subTitleSize: 12,
+                                        illusAlign: 'right'
+                                    }
+                                }
+                            bMap.setBubble(vSetBubble, function(ret){
+                                if(ret){
+                                    alert(JSON.stringify(ret));
+                                }
+                            });
+                            bMap.popupBubble({
+                                id: 2000 + eventAnnotationIndex
+                            });
+                        }else{
+                            alert( JSON.stringify( err ))
+                        }
+                    });
+                });
+                bMap.getLocation(function(ret, err){
+                    if(ret.status){
+                        // var vAddImg = {
+                        //         id: 5,
+                        //         imgPath: 'widget://image/over_img.png',
+                        //         lbLon: ret.lon,
+                        //         lbLat: ret.lat,
+                        //         rtLon: ret.lon + 0.1,
+                        //         rtLat: ret.lat + 0.1,
+                        //         opacity: 0.8
+                        //     }
+                        //     bMap.addImg(vAddImg);
+                    }else{
+                        //  alert( JSON.stringify( err ))
+                    }
+                });
+                
+                // setTimeout(function(){
+                //     //  getRegion();
+                //     //  addPolygon()
+                //     setMapAttr()
+                // },5000)
+            }else{
+                 alert( JSON.stringify( err ))
+            }
+        });
+    }
+    
+    function setMapAttr(){
+        bMap.setMapAttr({
+            type: 'trafficOn'
+        });
+    }
+    
+    function addBillboard(){
+        bMap.addBillboard({
+            id: 4,
+            coords: {
+                lon: 116.233,
+                lat: 39.134
+            },
+            bgImg: 'widget://image/bMapTest.png',
+            content: {
+                title: '大标题大标题大标题大标题',
+                subTitle: '概述内容概述内容概述内容',
+                illus: 'http://ico.ooopic.com/ajax/iconpng/?id=145044.png'
+            },
+            styles: {
+                titleColor: '#000',
+                titleSize: 16,
+                subTitleColor: '#999',
+                subTitleSize: 12,
+                illusAlign: 'left'
+            }
+        }, function(ret){
+            if(ret){
+                alert(JSON.stringify(ret));
+            }
+        });
+    }
+    
+    function autocomplete(){
+        bMap.autocomplete({
+            keyword: '北京西站',
+            city: '北京'
+        },function(ret){
+            if(ret.status){
+                alert(JSON.stringify(ret.results)); 
+            }else{
+                alert(JSON.stringify(err));
+            }
+        });
+    }
+    
+    function addPolygon(){
+        bMap.addPolygon({
+            id: 1,
+            styles: {
+                borderColor: 'rgba(217,219,9,.8)',
+                borderWidth: 2,
+                fillColor:'rgba(217,219,9,.4)'
+            },
+            points: [{
+                    lon:116.360315,
+                    lat:40.006059
+                },{
+                    lon:116.360036,
+                    lat:39.975095
+                },{
+                    lon:116.397469,
+                    lat:39.9752345
+                },{
+                    lon:116.399355,
+                    lat:40.009527
+                }]
+        });
+        bMap.searchInBounds({
+            keyword: '图书馆', 
+            lbLon: 116.360036, 
+            lbLat: 39.975095, 
+            rtLon: 116.399355, 
+            rtLat: 40.009527 
+        },function(ret,err){
+            if(ret.status){
+                var searchInBounds = [];
+                var data = ret.results;
+                for( var x in data ){
+                    searchInBounds.push( { id: parseInt( x ), lon: data[x].lon, lat: data[x].lat } );
+                }
+                bMap.addAnnotations({
+                    annotations: searchInBounds
+                    //  icon: 'widget://image/icon_gcoding.png',
+                    //  draggable: true
+                }, function(ret){
+                    //  alert( JSON.stringify( ret ))
+                });
+                setInterval(function(){
+                    for( var x in searchInBounds ){
+                        searchInBounds[x].lat += 0.00007;
+                        searchInBounds[x].lon += 0.00007;
+                        bMap.setAnnotationCoords({
+                            id: searchInBounds[x].id,
+                            lon: searchInBounds[x].lon,
+                            lat: searchInBounds[x].lat
+                        });
+                    }
+                },300);
+            }else{
+                alert(JSON.stringify(err));
+            }
+        });
+            }
+    
+    function funUserLocation( type ){   
+        bMap.showUserLocation({
+            isShow: true,
+            trackingMode: type
+        });
+        if( type == 'compass' ){
+            funSetZoomLevel( 18 );
+        }else if ( type == 'none' ){
+            funSetZoomLevel( 13 );
+        }else{
+            funSetZoomLevel( 15 );
+        }
+    }
+    
+    function funSetZoomLevel( level ){
+        bMap.setZoomLevel({
+            level: level
+        });
+    }
+    
+    function getDistance(){
+        bMap.getRegion(function(ret){
+            bMap.getDistance({
+                start: {
+                    lon: ret.lbLon,
+                    lat: ret.lbLat
+                },
+                end: {
+                    lon: ret.rtLon,
+                    lat: ret.rtLat
+                }
+            },function(ret){
+                alert( JSON.stringify( ret ))
+            });
+        });
+    }
+    
+    function getRegion(){
+        bMap.getRegion(function(ret){
+            var searchInBounds = {
+                keyword: '书店', 
+                lbLon: ret.lbLon, 
+                lbLat: ret.lbLat, 
+                rtLon: ret.rtLon, 
+                rtLat: ret.rtLat
+            }
+            bMap.searchInBounds(searchInBounds,function(ret,err){
+                if(ret.status){
+                    searchInBounds = [];
+                    var data = ret.results;
+                    for( var x in data ){
+                        searchInBounds.push( { id: parseInt( x ), lon: data[x].lon, lat: data[x].lat } );
+                    }
+                    bMap.addAnnotations({
+                        annotations: searchInBounds
+                        //  icon: 'widget://image/icon_gcoding.png',
+                        //  draggable: true
+                    }, function(ret){
+                        //  alert( JSON.stringify( ret ))
+                    });
+                }else{
+                    alert(JSON.stringify(err));
+                }
+            });
+            var addAnnotations = [{
+                    id: 100, lon: ret.lbLon, lat: ret.lbLat
+                },{
+                    id: 200, lon: ret.rtLon, lat: ret.rtLat
+                }];
+                alert( JSON.stringify( addAnnotations ))
+        });
+    }
+    
+    function funsearchRoute(){
+        bMap.searchRoute({
+            id:1,
+           //   type: 'drive',
+           //  policy: 'ecar_fee_first',
+            start: {
+                city: '北京',
+                name: '天安门',
+                lon: 116.403838,
+                lat: 39.914437
+            },
+            end: {
+                city: '北京',
+                name: '龙翔路甲一号',
+                lon: 116.384852,
+                lat: 39.989576
+            }
+        }, function(ret, err){  
+            alert( JSON.stringify( ret ))
+            alert( JSON.stringify( err ))
+        });
+    }
+
+    function fundrawRoute(){
+        bMap.drawRoute({
+            id: 1,
+            index:0,
+            styles:{
+                 start:{                               //（可选项）JSON对象；起点信息
+                   icon:'widget://image/1.png'// 字符串类型；起点图标
+                 } ,
+                 end:{           //JSON对象；终点信息
+                   icon:'widget://image/2.png'  // 字符串类型；终点图标
+                 }
+            }
+        }, function(ret){
+            alert( JSON.stringify( ret ))
+        });
+    }
+    
+    function funAddAnnotations( data ){
+        $api.showProgress();
+        var data = JSON.parse( data );
+        removeAn = 0;
+        api.execScript({
+            name: 'root',
+            frameName: 'input',
+            script: 'funAddSearchTxt(\''+data.name+'\')'
+        });
+        api.closeFrame({
+            name: 'routeList'
+        });
+        if( data.uid ){
+            bMap.addAnnotations({
+                annotations: [{
+                    id: 1, lon: data.lon, lat: data.lat
+                }],
+                icon: 'widget://image/icon_gcoding.png',
+                //  draggable: true
+            }, function(ret){
+                //  alert( JSON.stringify( ret ))
+            });
+            bMap.setCenter({
+                coords: {
+                    lon: data.lon,
+                    lat: data.lat
+                },
+                animation:false
+            });
+            bMap.setZoomLevel({
+                level: 18
+            });
+        }else{
+            if( removeAnnotations.length > 0 ){
+                bMap.removeAnnotations({
+                    ids: removeAnnotations
+                });
+                removeAnnotations = [];
+            }
+            bMap.searchNearby({
+                keyword: data.name,
+                lon: data.lon,
+                lat: data.lat,
+                pageCapacity : 50,
+                radius: 700
+            },function(ret,err){
+                if(ret.status){
+                    var annotations = [];
+                    data = ret.results;
+                    for( var x in data ){
+                        if( parseInt( x ) == removeAn ){
+                            annotations.push( { id: parseInt( x ), lon: data[x].lon, lat: data[x].lat, icon: 'widget://image/icon_gcoding.png' } );
+                        }else{
+                            annotations.push( { id: parseInt( x ), lon: data[x].lon, lat: data[x].lat,icon: 'widget://image/icon_openmap_mark.png' } );
+                        }
+                        removeAnnotations.push( parseInt( x ) );
+                    }
+                    bMap.addAnnotations({
+                        annotations: annotations,
+                        //  icon: 'widget://image/icon_openmap_mark.png',
+                        //  draggable: true
+                    }, function(ret){
+                        funclickAnnotations( { data: data , ret : ret  } );
+                    });
+                    bMap.setCenter({
+                        coords: {
+                            lon: data[removeAn].lon,
+                            lat: data[removeAn].lat
+                        },
+                        animation:false
+                    });
+                    bMap.setZoomLevel({
+                        level: 18
+                    });
+                    api.openFrame({
+                        name: 'routeList',
+                        url: './html/routeList.html',
+                        rect:{
+                            x:0,
+                            y:api.winHeight - 100,
+                            h:100
+                        },
+                        pageParam: {data: JSON.stringify( ret )},
+                    });
+                }else{
+                    
+                }
+                $api.hideProgress();
+            });
+        }
+        api.closeWin({
+            name: 'searList'
+        });
+        funIsPageModify( false );
+    }
+    
+    function funclickAnnotations( obj ){
+            if( obj.ret.id == removeAn )return;
+            endLoction = obj.data[obj.ret.id];
+            annotations = [];
+            var removeOverlay = [];
+            removeOverlay.push( obj.ret.id );
+            annotations.push( { id: obj.ret.id, lon: obj.data[obj.ret.id].lon, lat: obj.data[obj.ret.id].lat, icon: 'widget://image/icon_gcoding.png' } );
+            removeOverlay.push( removeAn );
+            annotations.push( { id: removeAn, lon: obj.data[removeAn].lon, lat: obj.data[removeAn].lat,icon: 'widget://image/icon_openmap_mark.png' } );
+            bMap.removeAnnotations({
+                ids: removeOverlay
+            });
+            bMap.addAnnotations({
+                annotations: annotations,
+                //  icon: 'widget://image/icon_openmap_mark.png',
+                // draggable: true
+            }, function(ret){
+                funclickAnnotations( { data: obj.data , ret : ret } );
+            });
+            bMap.setCenter({
+                coords: {
+                    lon: obj.data[obj.ret.id].lon,
+                    lat: obj.data[obj.ret.id].lat
+                },
+                animation:true
+            });
+            removeAn = obj.ret.id;
+            if( typeof obj.isScroll == 'undefined'  ){
+                api.execScript({
+                    name: 'root',
+                    frameName: 'routeList',
+                    script: 'funToSwipe(\''+obj.ret.id+'\')'
+                });
+            }else{
+                // 如果切换地点重新绘制路线
+                 funGoRoute( obj ); 
+            }
+    }
+    
+    function funGoRoute( obj ){ //当路线切换时快速绘制新的路线
+            if( ! vGoRoute.line )return;
+            $api.showProgress();
+            bMap.getLocation({
+                accuracy: '100m',
+                autoStop: true,
+                filter: 1
+            }, function(ret, err){
+                if(ret.status){
+                    var vSearchRoute = {
+                        id: 1000 + obj.ret.id,
+                        type: draRouteType,
+                        policy:  vGoRoute.line.policy ,
+                        start: {
+                            lon: ret.lon,
+                            lat: ret.lat
+                        },
+                        end: {
+                            lon: obj.data[obj.ret.id].lon,
+                            lat: obj.data[obj.ret.id].lat
+                        }
+                    }
+                    bMap.searchRoute(vSearchRoute, function(ret, err){
+                        if( ret.status ){
+                            bMap.removeRoute({
+                                ids: [ routeId ]
+                            });
+                            bMap.drawRoute({
+                                id: 1000 + obj.ret.id
+                            }, function(ret){
+                                alert( JSON.stringify( ret ))
+                            });
+                            routeId = 1000 + obj.ret.id;
+                            vGoRoute.line.id = 1000 + obj.ret.id
+                        }else{
+                            alert( '暂无方案。\n错误码：'+JSON.stringify( err ))
+                        }
+                        $api.hideProgress();
+                    });
+                }else{
+                    alert( JSON.stringify( err ))
+                }
+            })
+    }
+    
+    
+    function funDraw( index ){
+        $api.showProgress();
+       if( index == 0 ){
+          draRouteType = 'transit';
+       }else if( index == 1 ){
+          draRouteType = 'drive';
+       }else if( index == 2 ){
+          draRouteType = 'walk';
+       }
+        bMap.getLocation({
+            accuracy: '100m',
+            autoStop: true,
+            filter: 1
+        }, function(ret, err){
+            var vSearchRoute = {
+                id: 1000 + vGoRoute.line.id,
+                type: draRouteType,
+                policy:  vGoRoute.line.policy,
+                start: {
+                    city: '北京',
+                    lon: ret.lon,
+                    lat: ret.lat
+                },
+                end: {
+                    city: '北京',
+                    lon: endLoction.lon,
+                    lat: endLoction.lat
+                }
+            }
+            bMap.searchRoute(vSearchRoute, function(ret, err){
+                if( ret.plans ){
+                    bMap.removeRoute({
+                        ids: [ routeId ]
+                    });
+                    bMap.drawRoute({
+                        id: 1000 + vGoRoute.line.id
+                    }, function(ret){
+                        alert( JSON.stringify( ret ))
+                    });
+                    routeId = 1000 + vGoRoute.line.id;
+                    vGoRoute.line.id = 1000 + vGoRoute.line.id;
+                }else{
+                    alert( '暂无方案。\n错误码：'+JSON.stringify( err ))
+                }
+                $api.hideProgress();
+            });
+        });
+    }
+    
+    function funAddLine( data ){
+        vGoRoute = data;
+        draRouteType = vGoRoute.line.type
+        if( routeId >= 0 ){
+            bMap.removeRoute({
+                ids: [routeId]
+            });
+        }
+        api.execScript({
+            name: 'routePlanHeader',
+            script: 'funClose()'
+        });
+        api.execScript({
+            name: 'root',
+            frameName: 'input',
+            script: 'funShowRoute('+JSON.stringify( data )+')'
+        });
+        routeId = data.line.id;
+        bMap.drawRoute({
+            id: data.line.id,
+            index: data.line.index,
+            styles: {
+                start: {
+                    //icon: 'widget://image/bmap_start.png'
+                },
+                end: {
+                   // icon: 'widget://image/bmap_end.png'
+                }
+            }
+        }, function(ret){
+            alert( JSON.stringify( ret ))
+        });
+    }
+    
+    function funGetLocation( data ){
+        bMap.getLocation({
+            accuracy: '100m',
+            autoStop: true,
+            filter: 1
+        }, function(ret, err){
+            if(ret.status){
+                funSearchRoute( { getLocation : ret, data: data, num : 0, frames : [] } );
+            }else{
+                alert( JSON.stringify( err ))
+            }
+        })
+    }
+    
+    function funSearchRoute( obj ){
+    　 if( obj.num <  obj.data.type.length ){
+            var policy = obj.data.policy ? obj.data.policy : 'ebus_time_first';
+            var groupIndex = obj.data.groupIndex ? obj.data.groupIndex : 0;
+            var vSearchRoute = {
+                id: obj.num,
+                type: obj.data.type[obj.num],
+                policy:  policy ,
+                start: {
+                    city: '北京',
+                    lon: obj.getLocation.lon,
+                    lat: obj.getLocation.lat
+                },
+                end: {
+                    city: '北京',
+                    lon: obj.data.endData.lon,
+                    lat: obj.data.endData.lat
+                }
+            }
+            bMap.searchRoute(vSearchRoute, function(ret, err){
+                //  alert( obj.num+', ret ,'+JSON.stringify( ret ))
+                //  alert( obj.num+', err ,'+JSON.stringify( err ))
+                if( ret.status ){
+                    obj.frames.push( { data : ret, name : obj.data.type[obj.num], lineId: obj.num, policy : policy, groupIndex: groupIndex } );
+                    funSearchRoute( { getLocation : obj.getLocation, data: obj.data, num : ++obj.num, frames : obj.frames } );
+                }else{
+                    obj.frames.push( { data : err, name : obj.data.type[obj.num], lineId: obj.num, policy : policy, groupIndex: groupIndex} );
+                    funSearchRoute( { getLocation : obj.getLocation, data: obj.data, num : ++obj.num, frames : obj.frames } );
+                }
+            });
+       }else{
+            api.execScript({
+                name: 'routePlanHeader',
+                script: ' funOpenFrames( '+JSON.stringify( obj.frames ) +')'
+            });
+       }
+    }
+    
+    // function funFloadtCount( obj ){ //浮点数加减     funFloadtCount( { num: 116.384982, count : 100 } )
+    //     var num = obj.num.toString();
+    //     var dValue =  num.substr( num.length - ( Math.abs( obj.count ).toString().length + 1 ) );
+    //     return num.substr( 0, num.length - ( Math.abs( obj.count ).toString().length + 1 ) ) + ( parseInt( dValue ) + obj.count );
+    // }
+</script>
+
+</html>

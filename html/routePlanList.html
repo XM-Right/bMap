@@ -1,0 +1,139 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,initial-scale=1.0,width=device-width"
+    />
+    <title>APP</title>
+    <link rel="stylesheet" type="text/css" href="../css/style.css" />
+    <style>
+        body{ background-color: white; }
+        .list{ overflow: auto; }
+        .list ul li{ line-height: 22px; padding: 10px; }
+        .list ul li span{ color: #3385ff; font-size: .8rem; padding-left: 10px;  }
+        .list ul li p{ color: #bbb; font-size: .8rem; }
+    </style>
+</head>
+<body>
+    <div class="list flex-con">
+        <ul>
+            <!--
+               
+                <li class="border-b" >
+                    <i class="none"></i>
+                    <h6>菜馆 <span>普通点</span></h6>
+                    <p>约34343秒 | 3站 | 路长 322米</p>
+                </li>   
+             -->
+        </ul>
+    </div>
+</body>
+    <script type="text/javascript" src="../script/api.js"></script>
+<script type="text/javascript" >
+    
+    var bMap,
+        data,
+        getLocation;
+    apiready = function(){
+		bMap = api.require('bMap');
+        funLayout( JSON.parse( api.pageParam.data ) );
+    }
+    
+    function funLayout( data ){
+        if( data.plans ){
+            if( api.pageParam.sPolicy == 'ebus_time_first' ){
+                var  policy = '时间优先';
+            }else if(  api.pageParam.sPolicy == 'ecar_fee_first'  ){
+                var  policy = '较少费用';
+            }else if(  api.pageParam.sPolicy == 'ecar_dis_first'  ){
+                var  policy = '最短距离';
+            }else if(  api.pageParam.sPolicy == 'ecar_avoid_jamt'  ){
+                var  policy = '躲避拥堵';
+            }else if(  api.pageParam.sPolicy == 'ebus_no_subway'  ){
+                var  policy = '不含地铁';
+            }else if(  api.pageParam.sPolicy == 'ebus_transfer_first'  ){
+                var  policy = '最少换乘';
+            }else if(  api.pageParam.sPolicy == 'ebus_walk_first'  ){
+                var  policy = '最少步行距离';
+            }
+            var plans = data.plans;
+            $api.dom('ul').innerHTML = '';
+            for( var x in plans ){
+                var ht = '<li data-index="{ id:'+api.pageParam.lineId+', index : '+x+', policy: \''+api.pageParam.sPolicy+'\', type:\''+api.frameName+'\'}" class="border-b" onclick="funOutput( this );" tapmode="hover" >'+
+                '    <i class="none">'+JSON.stringify( plans[x] )+'</i>'+
+                '    <h6>方案'+x+' <span>'+policy+'</span></h6>'+
+                '    <p>约'+ getDis( plans[x].duration )+' | '+plans[x].nodes.length+'个节点 | 路长'+plans[x].distance+'米</p>'+
+                '</li>';
+                $api.append( $api.dom('ul'), ht);
+            }
+            api.parseTapmode();
+        }else{
+            //  alert( JSON.stringify( data ))
+            $api.append( $api.dom('ul'), '<li>暂无方案。<br />错误码：'+JSON.stringify( data )+'</li>');
+        }
+    }
+    
+    
+    function funSearchRoute( obj ){//废弃
+        bMap.searchRoute({
+            id: parseInt( api.pageParam.index ),
+            type: api.frameName,
+            policy:  obj ? obj.policy : null || 'ebus_time_first',
+            start: {
+                city: '北京',
+                lon: getLocation.lon,
+                lat: getLocation.lat
+            },
+            end: {
+                city: '北京',
+                lon: data.lon,
+                lat: data.lat
+            }
+        }, function(ret, err){
+            if( ret.status ){
+                var plans = ret.plans;
+                $api.dom('ul').innerHTML = '';
+                for( var x in plans ){
+                    var ht = '<li data-index="{ id:'+api.pageParam.index+', index : '+x+' }" class="border-b" onclick="funOutput( this );" tapmode="hover" >'+
+                    '    <i class="none">'+JSON.stringify( plans[x] )+'</i>'+
+                    '    <h6>方案'+x+' <span>'+ ( obj ? obj.policyName : '时间优先' ) +'</span></h6>'+
+                    '    <p>约'+ getDis( plans[x].duration )+' | '+plans[x].nodes.length+'个节点 | 路长'+plans[x].distance+'米</p>'+
+                    '</li>';
+                    $api.append( $api.dom('ul'), ht);
+                }
+                api.parseTapmode();
+            }else{
+                alert( JSON.stringify( err ))
+            }
+            if( obj ){
+                var data = {
+                    num : ++obj.num, 
+                    frames : obj.frames,
+                    eIndex : obj.eIndex
+                }
+                api.execScript({
+                    name: 'routePlanHeader',
+                    frameName: 'selectPlan',
+                    script: 'funExecScript('+JSON.stringify( data )+')'
+                });
+            }
+        });
+    }
+    
+    function funOutput( tag ){
+        api.execScript({
+            name: 'root',
+            script: 'funAddLine( { line : '+tag.getAttribute('data-index') +'})'
+        });
+    }
+    function getDis(s){
+        var day =  parseInt( s / ( 3600 * 24 ) ) <= 0 ? '' : parseInt( s / ( 3600 * 24 ) ) +'天',
+            hours = parseInt( parseInt( s % ( 3600 * 24 ) ) / 3600 ) <= 0 ? '' : parseInt( parseInt( s % ( 3600 * 24 ) ) / 3600 ) +'小时',
+            minutes = parseInt( parseInt( s % 3600 ) / 60 ) <= 0 ? '' : parseInt( parseInt( s % 3600 ) / 60 ) +'分',
+            seconds = s % 60 <= 0 ? '' : s % 60 +'秒';
+        return day + hours + minutes + seconds;
+    }
+</script>
+
+</html>
