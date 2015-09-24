@@ -1,0 +1,1 @@
+"<snippet><content><![CDATA[var obj = api.require('wifi');\nobj.disconnect (function(ret,err){ \n   if(ret.status){\n      api.alert({msg:'断开连接成功'});\n   }else{\n     api.alert({msg:'断开连接失败'});\n   }\n});\n]]></content><tabTrigger>DeviceAccess-undefined</tabTrigger><scope>source.js</scope><description>DeviceAccess-undefined 的描述</description></snippet>"

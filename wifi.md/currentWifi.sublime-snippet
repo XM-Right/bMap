@@ -1,0 +1,1 @@
+"<snippet><content><![CDATA[var obj = api.require('wifi');\nobj.currentWifi(function(ret,err){\n    if(ret.status){\n        api.alert({msg:ret.ssid+\"*\"+ret.bssid});\n    }else{\n        api.alert({msg:ret.msg});\n    }\n});\n]]></content><tabTrigger>DeviceAccess-getWifiState</tabTrigger><scope>source.js</scope><description>DeviceAccess-getWifiState 的描述</description></snippet>"

@@ -1,0 +1,1 @@
+"<snippet><content><![CDATA[var obj = api.require('wifi');\nobj.scanWifiList(function(ret,err){ \n   if(ret.status){\n   api.alert({msg:ret.scanWifiList[0].ssid});\n   }\n});\n]]></content><tabTrigger>DeviceAccess-removeNetwork</tabTrigger><scope>source.js</scope><description>DeviceAccess-removeNetwork 的描述</description></snippet>"
